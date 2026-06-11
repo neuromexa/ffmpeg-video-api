@@ -2,8 +2,11 @@ const express = require('express');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 
 const app = express();
+const FFMPEG = ffmpegInstaller.path;
+
 app.use(express.raw({ type: '*/*', limit: '50mb' }));
 
 app.post('/create-video', (req, res) => {
@@ -17,7 +20,7 @@ app.post('/create-video', (req, res) => {
   try {
     fs.writeFileSync(audioPath, req.body);
 
-    execSync(`ffmpeg -y \
+    execSync(`${FFMPEG} -y \
       -f lavfi -i color=c=0x0a0a2e:size=1080x1920:rate=30 \
       -i ${audioPath} \
       -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='WORLD CUP 2026':fontcolor=gold:fontsize=70:x=(w-text_w)/2:y=300, \

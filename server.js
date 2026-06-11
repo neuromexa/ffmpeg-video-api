@@ -23,11 +23,11 @@ app.post('/create-video', (req, res) => {
     execSync(`${FFMPEG} -y \
       -f lavfi -i color=c=0x0a0a2e:size=1080x1920:rate=30 \
       -i ${audioPath} \
-      -vf "drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='WORLD CUP 2026':fontcolor=gold:fontsize=70:x=(w-text_w)/2:y=300, \
-      drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${matchLabel}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=500, \
-      drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${group}':fontcolor=cyan:fontsize=40:x=(w-text_w)/2:y=620, \
-      drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='Predicted Score':fontcolor=white:fontsize=40:x=(w-text_w)/2:y=800, \
-      drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='${predictedScore}':fontcolor=yellow:fontsize=100:x=(w-text_w)/2:y=880" \
+      -vf "drawtext=text='WORLD CUP 2026':fontcolor=gold:fontsize=70:x=(w-text_w)/2:y=300, \
+      drawtext=text='${matchLabel}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=500, \
+      drawtext=text='${group}':fontcolor=cyan:fontsize=40:x=(w-text_w)/2:y=620, \
+      drawtext=text='Predicted Score':fontcolor=white:fontsize=40:x=(w-text_w)/2:y=800, \
+      drawtext=text='${predictedScore}':fontcolor=yellow:fontsize=100:x=(w-text_w)/2:y=880" \
       -c:v libx264 -c:a aac -shortest ${outputPath}`, { timeout: 120000 });
 
     const videoData = fs.readFileSync(outputPath);

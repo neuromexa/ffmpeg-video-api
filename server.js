@@ -2,33 +2,44 @@ const express = require('express');
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const axios = require('axios');
 const ffmpegInstaller = require('@ffmpeg-installer/ffmpeg');
 
 const app = express();
 const FFMPEG = ffmpegInstaller.path;
 
-app.use(express.raw({ type: '*/*', limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 
-app.post('/create-video', (req, res) => {
-  const matchLabel = (req.headers['x-match-label'] || 'Match').replace(/'/g, '').replace(/:/g, '');
-  const predictedScore = (req.headers['x-predicted-score'] || '2-1').replace(/'/g, '');
-  const group = (req.headers['x-group'] || 'GROUP A').replace(/'/g, '');
+app.post('/create-video', async (req, res) => {
+  const { videoUrls, audioBase64 } = req.body;
 
-  const audioPath = '/tmp/audio.mp3';
-  const outputPath = '/tmp/output.mp4';
+  const tmpDir = '/tmp';
+  const audioPath = path.join(tmpDir, 'audio.mp3');
+  const outputPath = path.join(tmpDir, 'output.mp4');
+  const listPath = path.join(tmpDir, 'list.txt');
 
   try {
-    fs.writeFileSync(audioPath, req.body);
+    // Sesi base64'ten kaydet
+    fs.writeFileSync(audioPath, Buffer.from(audioBase64, 'base64'));
 
+    // Videoları indir
+    const videoPaths = [];
+    for (let i = 0; i < videoUrls.length; i++) {
+      const vPath = path.join(tmpDir, `video${i}.mp4`);
+      const vRes = await axios.get(videoUrls[i], { responseType: 'arraybuffer' });
+      fs.writeFileSync(vPath, vRes.data);
+      videoPaths.push(vPath);
+    }
+
+    // FFmpeg concat listesi
+    const listContent = videoPaths.map(p => `file '${p}'`).join('\n');
+    fs.writeFileSync(listPath, listContent);
+
+    // Videoları birleştir + ses ekle
     execSync(`${FFMPEG} -y \
-      -f lavfi -i color=c=0x0a0a2e:size=1080x1920:rate=30 \
+      -f concat -safe 0 -i ${listPath} \
       -i ${audioPath} \
-      -vf "drawtext=text='WORLD CUP 2026':fontcolor=gold:fontsize=70:x=(w-text_w)/2:y=300, \
-      drawtext=text='${matchLabel}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=500, \
-      drawtext=text='${group}':fontcolor=cyan:fontsize=40:x=(w-text_w)/2:y=620, \
-      drawtext=text='Predicted Score':fontcolor=white:fontsize=40:x=(w-text_w)/2:y=800, \
-      drawtext=text='${predictedScore}':fontcolor=yellow:fontsize=100:x=(w-text_w)/2:y=880" \
-      -c:v libx264 -c:a aac -shortest ${outputPath}`, { timeout: 120000 });
+      -c:v libx264 -c:a aac -shortest ${outputPath}`, { timeout: 180000 });
 
     const videoData = fs.readFileSync(outputPath);
     res.setHeader('Content-Type', 'video/mp4');
